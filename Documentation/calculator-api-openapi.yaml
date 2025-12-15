@@ -1,0 +1,329 @@
+openapi: 3.0.3
+info:
+  title: Calculator API
+  description: |
+    API para realizar operaciones matemáticas básicas (suma, resta, multiplicación y división).
+    
+    La API recibe dos números y devuelve los resultados de todas las operaciones matemáticas.
+    
+    **Características:**
+    - No requiere autenticación
+    - Soporta números enteros y decimales
+    - Soporta números positivos y negativos
+    - Maneja división por cero devolviendo `null`
+  version: 1.0.0
+  contact:
+    name: DevPortal Support
+    email: support@devportal.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://calculator-api-532585334983.us-central1.run.app
+    description: Servidor de producción en Google Cloud Run
+
+tags:
+  - name: Operations
+    description: Operaciones matemáticas
+  - name: Health
+    description: Endpoints de salud y estado del servicio
+
+paths:
+  /:
+    get:
+      tags:
+        - Health
+      summary: Documentación de la API
+      description: Muestra información general de la API y ejemplos de uso
+      operationId: getDocumentation
+      responses:
+        '200':
+          description: Documentación de la API
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Calculator API - Documentación"
+                  endpoints:
+                    type: array
+                    items:
+                      type: string
+                    example:
+                      - "GET /"
+                      - "GET /health"
+                      - "POST /api/calculate"
+
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health Check
+      description: Verifica que la API esté funcionando correctamente
+      operationId: healthCheck
+      responses:
+        '200':
+          description: API funcionando correctamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              examples:
+                success:
+                  value:
+                    status: "UP"
+                    service: "Calculator API"
+                    timestamp: "2025-12-13T19:52:30.123Z"
+
+  /api/calculate:
+    post:
+      tags:
+        - Operations
+      summary: Realizar operaciones matemáticas
+      description: |
+        Recibe dos números (a y b) y devuelve los resultados de:
+        - Suma (a + b)
+        - Resta (a - b)
+        - Multiplicación (a * b)
+        - División (a / b)
+        
+        **Nota:** Si b es 0, el campo `divide` será `null` para evitar división por cero.
+      operationId: calculate
+      requestBody:
+        description: Números para realizar las operaciones matemáticas
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CalculateRequest'
+            examples:
+              positive:
+                summary: Números positivos
+                value:
+                  a: 10
+                  b: 5
+              decimals:
+                summary: Números decimales
+                value:
+                  a: 7.5
+                  b: 2.5
+              negative:
+                summary: Números negativos
+                value:
+                  a: -10
+                  b: 5
+              divisionByZero:
+                summary: División por cero
+                value:
+                  a: 10
+                  b: 0
+      responses:
+        '200':
+          description: Operaciones completadas exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CalculateResponse'
+              examples:
+                positive:
+                  summary: Resultado con números positivos
+                  value:
+                    sum: 15
+                    subtract: 5
+                    multiply: 50
+                    divide: 2
+                    input_a: 10
+                    input_b: 5
+                    message: "Operaciones completadas exitosamente"
+                decimals:
+                  summary: Resultado con números decimales
+                  value:
+                    sum: 10
+                    subtract: 5
+                    multiply: 18.75
+                    divide: 3
+                    input_a: 7.5
+                    input_b: 2.5
+                    message: "Operaciones completadas exitosamente"
+                negative:
+                  summary: Resultado con números negativos
+                  value:
+                    sum: -5
+                    subtract: -15
+                    multiply: -50
+                    divide: -2
+                    input_a: -10
+                    input_b: 5
+                    message: "Operaciones completadas exitosamente"
+                divisionByZero:
+                  summary: División por cero
+                  value:
+                    sum: 10
+                    subtract: 10
+                    multiply: 0
+                    divide: null
+                    input_a: 10
+                    input_b: 0
+                    message: "Operaciones completadas. División no disponible (división por cero)"
+        '400':
+          description: Error en los parámetros enviados
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missingParameter:
+                  summary: Parámetro faltante
+                  value:
+                    error: "El número \"b\" es requerido"
+                    message: "Por favor proporciona el número \"b\" en el body del request"
+                invalidValue:
+                  summary: Valor no numérico
+                  value:
+                    error: "El valor de \"a\" no es un número válido"
+                    message: "El valor \"abc\" no puede ser convertido a número"
+        '404':
+          description: Ruta no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundResponse'
+              examples:
+                notFound:
+                  value:
+                    error: "Ruta no encontrada"
+                    message: "La ruta GET /api/invalid-endpoint no existe"
+                    availableEndpoints:
+                      - "GET /"
+                      - "GET /health"
+                      - "POST /api/calculate"
+
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      required:
+        - status
+        - service
+        - timestamp
+      properties:
+        status:
+          type: string
+          description: Estado del servicio
+          enum:
+            - UP
+            - DOWN
+          example: "UP"
+        service:
+          type: string
+          description: Nombre del servicio
+          example: "Calculator API"
+        timestamp:
+          type: string
+          format: date-time
+          description: Marca de tiempo de la respuesta
+          example: "2025-12-13T19:52:30.123Z"
+
+    CalculateRequest:
+      type: object
+      required:
+        - a
+        - b
+      properties:
+        a:
+          type: number
+          description: Primer número (puede ser entero o decimal, positivo o negativo)
+          example: 10
+          default: 10
+        b:
+          type: number
+          description: Segundo número (puede ser entero o decimal, positivo o negativo)
+          example: 5
+          default: 5
+      example:
+        a: 10
+        b: 5
+
+    CalculateResponse:
+      type: object
+      required:
+        - sum
+        - subtract
+        - multiply
+        - divide
+        - input_a
+        - input_b
+        - message
+      properties:
+        sum:
+          type: number
+          description: Resultado de la suma (a + b)
+          example: 15
+        subtract:
+          type: number
+          description: Resultado de la resta (a - b)
+          example: 5
+        multiply:
+          type: number
+          description: Resultado de la multiplicación (a * b)
+          example: 50
+        divide:
+          type: number
+          nullable: true
+          description: Resultado de la división (a / b). Es null si b es 0
+          example: 2
+        input_a:
+          type: number
+          description: Primer número ingresado
+          example: 10
+        input_b:
+          type: number
+          description: Segundo número ingresado
+          example: 5
+        message:
+          type: string
+          description: Mensaje descriptivo del resultado
+          example: "Operaciones completadas exitosamente"
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          description: Tipo de error
+          example: "El número \"b\" es requerido"
+        message:
+          type: string
+          description: Mensaje descriptivo del error
+          example: "Por favor proporciona el número \"b\" en el body del request"
+
+    NotFoundResponse:
+      type: object
+      required:
+        - error
+        - message
+        - availableEndpoints
+      properties:
+        error:
+          type: string
+          description: Tipo de error
+          example: "Ruta no encontrada"
+        message:
+          type: string
+          description: Mensaje descriptivo del error
+          example: "La ruta GET /api/invalid-endpoint no existe"
+        availableEndpoints:
+          type: array
+          description: Lista de endpoints disponibles
+          items:
+            type: string
+          example:
+            - "GET /"
+            - "GET /health"
+            - "POST /api/calculate"
